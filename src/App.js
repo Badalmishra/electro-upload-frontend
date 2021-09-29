@@ -1,17 +1,20 @@
-import "./App.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { uploadChunk } from "./apis";
+import { Fab, Input, LinearProgress } from "@mui/material";
+import UploadButton from "./Components/UpoadButton";
+import PlayPause from "./Components/PlayPause";
+import { Box } from "@mui/system";
 
 function App() {
-  const fileInput = useRef(null);
   const [uploadPercent, setUploadPercent] = useState(0);
   const [fileBuff, setFileBuff] = useState(null);
   const [isPaused, setPaused] = useState(false);
   const [previousChunkId, setPreviousChunkIndex] = useState(0);
 
-  const loadFile = () => {
+  const loadFile = (event) => {
     const fileReader = new FileReader();
-    const theFile = fileInput.current.files[0];
+    console.log("fileInput.current");
+    const theFile = event.target.files[0];
     fileReader.onload = async (ev) => {
       const arrBuff = ev.target.result;
       console.log("Read successfully");
@@ -47,34 +50,61 @@ function App() {
     setPreviousChunkIndex((prev) => prev + 1);
     setUploadPercent(precent);
   };
+
   useEffect(() => {
-    if (!isPaused && fileBuff) {
-      if (uploadPercent === 100) {
-        setPreviousChunkIndex(0);
-      } else {
+    if (uploadPercent === 100) {
+      setPreviousChunkIndex(0);
+    } else {
+      if (!isPaused && fileBuff) {
         handleUpload();
       }
     }
   }, [previousChunkId]);
+  const isFileLoaded = useMemo(() => Boolean(fileBuff), [fileBuff]);
   return (
-    <div className="App">
+    <Box p={5} display="flex" alignItems="center" flexDirection="column">
       <h1>Electro file uploader</h1>
-      <input onChange={loadFile} ref={fileInput} type="file" id="f" />
-      <button
-        disabled={!Boolean(fileBuff)}
-        onClick={handleUpload}
-        id="btnUpload"
+      <Box
+        p={5}
+        display="flex"
+        alignItems="center"
+        width="80%"
+        justifyContent="space-between"
       >
-        Read & Upload
-      </button>
-      <div id="divOutput">{uploadPercent} %</div>
-      <hr />
-      {isPaused ? (
-        <button onClick={onResume}>Resume</button>
-      ) : (
-        <button onClick={onPause}>Pause</button>
-      )}
-    </div>
+        <Input color='secondary' placeholder="choose a file" onChange={loadFile} type="file" />
+        <UploadButton disabled={!isFileLoaded} onClick={handleUpload} />
+      </Box>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        flexDirection="row"
+        width="80%"
+      >
+        <Box
+          display="flex"
+          alignItems="center"
+          flexDirection="row"
+          width="100%"
+        >
+          <Fab variant='extended' color='secondary' >{uploadPercent} %  </Fab>
+          <Box width='40%'>
+            <LinearProgress
+              variant="determinate"
+              color="primary"
+              value={uploadPercent}
+            />
+          </Box>
+        </Box>
+        {(previousChunkId!==0) && (
+          <PlayPause
+            isPaused={isPaused}
+            onResume={onResume}
+            onPause={onPause}
+          />
+        )}
+      </Box>
+    </Box>
   );
 }
 
